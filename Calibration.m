@@ -1,3 +1,4 @@
+function Calibration(data)
 %% Set up workspace
 %This section clears every variable except for the structure 'data' and
 %loads the structure 'data' from 'Trial Data Imported.mat' if it does not
@@ -19,47 +20,7 @@
 % the first 11 files are trial 1, the next 11 are trial 2). For each trial
 % every sensor is listed in order based on sensor serial number.
 
-clearvars -except data TaskList RVelColumns RowStart QuatColumnOne NumberSensors num AccColumns guess
-dir = pwd;
-if exist('data')
-    loadNew = input('Do you want to use the same trial data? Yes or no (1/0)?');
-else
-    loadNew = 0;
-end
-if loadNew == 0
-    disp('Load trial data ("P_xxx.mat")')
-    cd(strcat(dir,'/Imported Subject Data'))
-    [Datfile Datdir] = uigetfile;
-    load(strcat(Datdir,Datfile))
-    cd(dir)
-    clc
-end
-%% Select Test
-%Below is a list of every task performed in the order. The user is prompted
-%to select a trial. The user's input is stored as the variable j which is
-%fed into a linear equation which calculates the index (ind). The index
-%corresponds to the first row corresponding to that given trial and is used
-%later when referencing data.
 
-if exist('TaskList')
-    loadSub = input('Do you want to use the same subject information? Yes or no (1/0)?');
-else
-    loadSub = 0;
-end
-if loadSub == 0
-    cd(strcat(dir,'/Subject Information'))
-    disp('Load subject information ("P_xxx_Info.mat")')
-    [SOfile SOdir] = uigetfile;
-    load(strcat(SOdir,SOfile))
-    cd(dir)
-    clc
-end
-disp(TaskList)
-
-j = input('Select Task');
-       
-ind = NumberSensors*(j-1)+1;
-clc
 %% Create acceleration and rotational velocity variables
 %Acceleration and rotational velocity data are taken from the data matrices
 %in row 2 of data. These data are indexed from these matices using the
@@ -71,41 +32,19 @@ clc
 %ordering scheme. Gravity free acceleration is found by subtracting gravity
 %at a still point defined at frame 1. Net acceleration is found from the
 %gravity free acceleration. Net rotational velocity is also found.
-span = min([length(data{ind+num.LowThighAnt,2}(:,1)),length(data{ind+num.ShinBone,2}(:,1)), ...
-    length(data{ind+num.LowShankLat,2}(:,1)),length(data{ind+num.Sacrum,2}(:,1)), ...
-    length(data{ind+num.LowThighPos,2}(:,1)),length(data{ind+num.MidThighLat,2}(:,1)), ...
-    length(data{ind+num.Heel,2}(:,1)), ...
-    length(data{ind+num.LowThighLat,2}(:,1)),length(data{ind+num.L4L5,2}(:,1)), ...
-    length(data{ind+num.MidShankLat,2}(:,1)),length(data{ind+num.DFoot,2}(:,1))]);
+span = min([length(data{ind+num.LowThighAnt,2}(:,1)),length(data{ind+num.ShinBone,2}(:,1))]);
     %indexing to span eliminates the possibility of "index exceeds matrix
     %dimensions" type errors since sensors occasionally don't capture the
     %exact same number of data points.
 % Acceleration
 AccLowThighAnt = data{ind+num.LowThighAnt,2}(1:span,AccColumns); % Low Thigh Anterior
 AccShinBone = data{ind+num.ShinBone,2}(1:span,AccColumns); % Shin Flat Bone
-AccLowShankLat = data{ind+num.LowShankLat,2}(1:span,AccColumns); % Low Shank Lateral
-AccSacrum = data{ind+num.Sacrum,2}(1:span,AccColumns); % Sacrum
-AccLowThighPos = data{ind+num.LowThighPos,2}(1:span,AccColumns); % Low Thigh Posterior
-AccMidThighLat = data{ind+num.MidThighLat,2}(1:span,AccColumns); % Middle Thigh Lateral
-AccHeel = data{ind+num.Heel,2}(1:span,AccColumns); % Heel
-AccLowThighLat = data{ind+num.LowThighLat,2}(1:span,AccColumns); % Low Thigh Lateral
-AccL4L5 = data{ind+num.L4L5,2}(1:span,AccColumns); % L4-L5 Lumbar Spine
-AccMidShankLat = data{ind+num.MidShankLat,2}(1:span,AccColumns); % Middle Shank Lateral
-AccDFoot = data{ind+num.DFoot,2}(1:span,AccColumns); % Dorsal Foot
 
 %Acceleration without gravity
 stillpoint = 1;
 Acc_noGLowThighAnt = [AccLowThighAnt(1:span,1)-AccLowThighAnt(stillpoint,1),AccLowThighAnt(1:span,2)-AccLowThighAnt(stillpoint,2),AccLowThighAnt(1:span,3)-AccLowThighAnt(stillpoint,3)]; % Low Shank, Lateral
 Acc_noGShinBone = [AccShinBone(1:span,1)-AccShinBone(stillpoint,1),AccShinBone(1:span,2)-AccShinBone(stillpoint,2),AccShinBone(1:span,3)-AccShinBone(stillpoint,3)]; % Low Thigh, Lateral
-Acc_noGLowShankLat = [AccLowShankLat(1:span,1)-AccLowShankLat(stillpoint,1),AccLowShankLat(1:span,2)-AccLowShankLat(stillpoint,2),AccLowShankLat(1:span,3)-AccLowShankLat(stillpoint,3)]; % 783 Mid Shank, Lateral
-Acc_noGSacrum = [AccSacrum(1:span,1)-AccSacrum(stillpoint,1),AccSacrum(1:span,2)-AccSacrum(stillpoint,2),AccSacrum(1:span,3)-AccSacrum(stillpoint,3)]; % Low Thigh, Posterior
-Acc_noGLowThighPos = [AccLowThighPos(1:span,1)-AccLowThighPos(stillpoint,1),AccLowThighPos(1:span,2)-AccLowThighPos(stillpoint,2),AccLowThighPos(1:span,3)-AccLowThighPos(stillpoint,3)]; % Shank, flat bone
-Acc_noGMidThighLat = [AccMidThighLat(1:span,1)-AccMidThighLat(stillpoint,1),AccMidThighLat(1:span,2)-AccMidThighLat(stillpoint,2),AccMidThighLat(1:span,3)-AccMidThighLat(stillpoint,3)]; % Low Thigh, Anterior
-Acc_noGHeel = [AccHeel(1:span,1)-AccHeel(stillpoint,1),AccHeel(1:span,2)-AccHeel(stillpoint,2),AccHeel(1:span,3)-AccHeel(stillpoint,3)]; % Dorsal Foot
-Acc_noGLowThighLat = [AccLowThighLat(1:span,1)-AccLowThighLat(stillpoint,1),AccLowThighLat(1:span,2)-AccLowThighLat(stillpoint,2),AccLowThighLat(1:span,3)-AccLowThighLat(stillpoint,3)]; % Mid Thigh, Lateral
-Acc_noGL4L5 = [AccL4L5(1:span,1)-AccL4L5(stillpoint,1),AccL4L5(1:span,2)-AccL4L5(stillpoint,2),AccL4L5(1:span,3)-AccL4L5(stillpoint,3)]; % L4-L5
-Acc_noGMidShankLat = [AccMidShankLat(1:span,1)-AccMidShankLat(stillpoint,1),AccMidShankLat(1:span,2)-AccMidShankLat(stillpoint,2),AccMidShankLat(1:span,3)-AccMidShankLat(stillpoint,3)]; % Sacrum
-Acc_noGDFoot = [AccDFoot(1:span,1)-AccDFoot(stillpoint,1),AccDFoot(1:span,2)-AccDFoot(stillpoint,2),AccDFoot(1:span,3)-AccDFoot(stillpoint,3)]; % Heel
+
 
 AccNet = sqrt(sum(Acc_noGLowThighAnt.^2,2))+sqrt(sum(Acc_noGShinBone.^2,2))+sqrt(sum(Acc_noGLowShankLat.^2,2))+sqrt(sum(Acc_noGSacrum.^2,2))+sqrt(sum(Acc_noGLowThighPos.^2,2))+ ...
     sqrt(sum(Acc_noGMidThighLat.^2,2))+sqrt(sum(Acc_noGHeel.^2,2))+sqrt(sum(Acc_noGLowThighLat.^2,2))+sqrt(sum(Acc_noGL4L5.^2,2))+sqrt(sum(Acc_noGMidShankLat.^2,2))+sqrt(sum(Acc_noGDFoot.^2,2));
@@ -113,18 +52,10 @@ AccNet = sqrt(sum(Acc_noGLowThighAnt.^2,2))+sqrt(sum(Acc_noGShinBone.^2,2))+sqrt
 % Rotational Velocity
 RotLowThighAnt = data{ind+num.LowThighAnt,2}(1:span,RVelColumns); % Low Thigh Anterior
 RotShinBone = data{ind+num.ShinBone,2}(1:span,RVelColumns); % Shin Flat Bone
-RotLowShankLat = data{ind+num.LowShankLat,2}(1:span,RVelColumns); % Low Shank Lateral
-RotSacrum = data{ind+num.Sacrum,2}(1:span,RVelColumns); % Sacrum
-RotLowThighPos = data{ind+num.LowThighPos,2}(1:span,RVelColumns); % Low Thigh Posterior
-RotMidThighLat = data{ind+num.MidThighLat,2}(1:span,RVelColumns); % Middle Thigh Lateral
-RotHeel = data{ind+num.Heel,2}(1:span,RVelColumns); % Heel
-RotLowThighLat = data{ind+num.LowThighLat,2}(1:span,RVelColumns); % Low Thigh Lateral
-RotL4L5 = data{ind+num.L4L5,2}(1:span,RVelColumns); % L4-L5 Lumbar Spine
-RotMidShankLat = data{ind+num.MidShankLat,2}(1:span,RVelColumns); % Middle Shank Lateral
-RotDFoot = data{ind+num.DFoot,2}(1:span,RVelColumns); % Dorsal Foot
 
 RotNet = sqrt(sum(RotLowThighAnt.^2,2))+sqrt(sum(RotShinBone.^2,2))+sqrt(sum(RotLowShankLat.^2,2))+sqrt(sum(RotSacrum.^2,2))+sqrt(sum(RotLowThighPos.^2,2))+ ...
     sqrt(sum(RotMidThighLat.^2,2))+sqrt(sum(RotHeel.^2,2))+sqrt(sum(RotLowThighLat.^2,2))+sqrt(sum(RotL4L5.^2,2))+sqrt(sum(RotMidShankLat.^2,2))+sqrt(sum(RotDFoot.^2,2));
+
 %% Selecting Calibration approaches
 %Two calibration approaches can be implemented with this script. The
 %functional calibration uses an outwalk protocol while the static
@@ -259,7 +190,7 @@ if functionalTru == 1
     Zero.DFoot = [SI_DFoot;ML_DFoot;AP_DFoot;];
     %% Save functional calibration file
     disp('Save the functional calibration file')  
-    cd(strcat(dir,'\Calibrations'))
+    cd(fullfile(dir,'Calibrations'))
     uisave('Zero')
     cd(dir)
     clc
@@ -317,7 +248,7 @@ if staticTru == 1
     Zero.DFoot = [SI_DFoot;ML_DFoot;AP_DFoot;];
     %% Save static calibration file
     disp('Save the static calibration file')
-    cd(strcat(dir,'\Calibrations'))
+    cd(fullfile(dir,'\Calibrations'))
     uisave('Zero')
     cd(dir)
     clc
